@@ -305,9 +305,9 @@ const App = () => {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
             <LayoutDashboard className="text-blue-600" />
-            TrueX <span className="text-blue-600">Strategic Dashboard</span>
+            TrueX
           </h1>
-          <p className="text-slate-500 mt-1">Intelligence Advisor Console | Live Google Sheets Data</p>
+          <p className="text-slate-500 mt-1">True Shop Performance Dashboard</p>
         </div>
         <div className="flex items-center gap-2">
           <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleImportFile} />
