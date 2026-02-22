@@ -198,23 +198,29 @@ const App = () => {
           shopSegment: t.shopSegment,
           revenue: 0,
           units: 0,
-          productCount: {}
+          productCount: {},
+          productNameCount: {}
         };
       }
       byShop[t.shopName].revenue += t.amount;
       byShop[t.shopName].units += t.qty;
       byShop[t.shopName].productCount[t.productSub] =
         (byShop[t.shopName].productCount[t.productSub] || 0) + t.qty;
+      byShop[t.shopName].productNameCount[t.productName] =
+        (byShop[t.shopName].productNameCount[t.productName] || 0) + t.qty;
     });
 
     return Object.values(byShop)
       .map((shop) => {
         const topProduct = Object.entries(shop.productCount)
           .sort((a, b) => b[1] - a[1])[0];
+        const topProductName = Object.entries(shop.productNameCount)
+          .sort((a, b) => b[1] - a[1])[0];
         return {
           ...shop,
           revenue: Math.round(shop.revenue),
-          topProduct: topProduct ? topProduct[0] : '-'
+          topProduct: topProduct ? topProduct[0] : '-',
+          topProductName: topProductName ? topProductName[0] : '-'
         };
       })
       .sort((a, b) => b.revenue - a.revenue);
@@ -537,6 +543,7 @@ const App = () => {
                 <th className="px-6 py-4">Revenue (THB)</th>
                 <th className="px-6 py-4">Units</th>
                 <th className="px-6 py-4">Top Product</th>
+                <th className="px-6 py-4">Product Name</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -553,18 +560,18 @@ const App = () => {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${shop.shopType === 'WW' ? 'bg-indigo-50 text-indigo-600' :
-                        shop.shopType.includes('สเฟียร์') ? 'bg-cyan-50 text-cyan-600' :
-                          'bg-orange-50 text-orange-600'
+                      shop.shopType.includes('สเฟียร์') ? 'bg-cyan-50 text-cyan-600' :
+                        'bg-orange-50 text-orange-600'
                       }`}>
                       {shop.shopType}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`text-xs font-semibold px-2 py-1 rounded-md ${shop.shopSegment === 'Champion' ? 'bg-emerald-50 text-emerald-700' :
-                        shop.shopSegment === 'High Potential' ? 'bg-blue-50 text-blue-700' :
-                          shop.shopSegment === 'At Risk' ? 'bg-rose-50 text-rose-700' :
-                            shop.shopSegment === 'Event' ? 'bg-violet-50 text-violet-700' :
-                              'bg-slate-100 text-slate-600'
+                      shop.shopSegment === 'High Potential' ? 'bg-blue-50 text-blue-700' :
+                        shop.shopSegment === 'At Risk' ? 'bg-rose-50 text-rose-700' :
+                          shop.shopSegment === 'Event' ? 'bg-violet-50 text-violet-700' :
+                            'bg-slate-100 text-slate-600'
                       }`}>
                       {shop.shopSegment}
                     </span>
@@ -588,11 +595,16 @@ const App = () => {
                       {shop.topProduct}
                     </span>
                   </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-medium">
+                      {shop.topProductName}
+                    </span>
+                  </td>
                 </tr>
               ))}
               {branchPerformance.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan="8" className="px-6 py-12 text-center text-slate-400">
                     No data found matching current filters.
                   </td>
                 </tr>
