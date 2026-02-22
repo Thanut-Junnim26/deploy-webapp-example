@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   TrendingUp,
   Filter,
-  Download,
+  Upload,
   Search,
   ChevronDown
 } from 'lucide-react';
@@ -37,6 +37,29 @@ const App = () => {
   const [selectedShopType, setSelectedShopType] = useState('All');
   const [selectedShopSegment, setSelectedShopSegment] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // --- File Import ---
+  const fileInputRef = useRef(null);
+  const handleImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (Array.isArray(data)) {
+          setTransactions(data);
+          alert(`Imported ${data.length} transactions successfully!`);
+        } else {
+          alert('Invalid format: expected a JSON array of transactions.');
+        }
+      } catch (err) {
+        alert('Failed to parse file. Please upload a valid JSON file.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // reset so the same file can be re-imported
+  };
 
   // --- Mock Data Initialization ---
   useEffect(() => {
@@ -149,8 +172,18 @@ const App = () => {
           <p className="text-slate-500 mt-1">Intelligence Advisor Console | Real-time Transaction Analysis</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50">
-            <Download size={16} /> Export Data
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50"
+          >
+            <Upload size={16} /> Import Data
           </button>
           <div className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -264,8 +297,8 @@ const App = () => {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
                 <Tooltip
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                 />
                 <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
               </BarChart>
@@ -315,12 +348,12 @@ const App = () => {
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <h3 className="text-lg font-bold">Branch Operational Intel</h3>
           <div className="flex gap-2">
-             <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md">
-               <CheckCircle2 size={12} /> Active
-             </span>
-             <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-rose-100 text-rose-700 rounded-md">
-               <AlertCircle size={12} /> Inactive
-             </span>
+            <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md">
+              <CheckCircle2 size={12} /> Active
+            </span>
+            <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-rose-100 text-rose-700 rounded-md">
+              <AlertCircle size={12} /> Inactive
+            </span>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -343,9 +376,8 @@ const App = () => {
                     <div className="text-xs text-slate-400">ID: {shop.id}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
-                      shop.type.includes('WW') ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'
-                    }`}>
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${shop.type.includes('WW') ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'
+                      }`}>
                       {shop.type}
                     </span>
                   </td>
@@ -370,7 +402,7 @@ const App = () => {
                     <div className="w-16 bg-slate-100 h-1.5 rounded-full overflow-hidden">
                       <div
                         className="bg-blue-500 h-full"
-                        style={{width: `${stats.totalQty > 0 ? Math.min(100, (shop.qty / stats.totalQty) * 1000) : 0}%`}}
+                        style={{ width: `${stats.totalQty > 0 ? Math.min(100, (shop.qty / stats.totalQty) * 1000) : 0}%` }}
                       ></div>
                     </div>
                     <span className="text-xs font-bold text-slate-500">{shop.qty} pcs</span>
