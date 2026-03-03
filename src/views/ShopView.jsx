@@ -242,6 +242,13 @@ const ShopView = ({ filteredData, allTransactions, startMonth, endMonth }) => {
         setDayTo(null);
     };
 
+    const handleInactiveShopClick = (shopType, shopName) => {
+        setSelectedShopType(shopType);
+        setSelectedShop(shopName);
+        setDayFrom(null);
+        setDayTo(null);
+    };
+
     const level = selectedShop !== 'All' ? 3 : selectedShopType !== 'All' ? 2 : 1;
     const months = useMemo(() => getSortedMonths(baseData), [baseData]);
     const isSingleMonth = months.length === 1;
@@ -652,7 +659,7 @@ const ShopView = ({ filteredData, allTransactions, startMonth, endMonth }) => {
 
             {/* Inactive Shop Alert */}
             {inactiveShopsList.shops?.length > 0 && level !== 3 && (
-                <InactiveShopAlert shops={inactiveShopsList.shops} periodLabel={inactiveShopsList.periodLabel} />
+                <InactiveShopAlert shops={inactiveShopsList.shops} periodLabel={inactiveShopsList.periodLabel} onShopClick={handleInactiveShopClick} />
             )}
         </div>
     );
