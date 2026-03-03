@@ -1,8 +1,9 @@
 const SHEET_CSV_URL =
     'https://docs.google.com/spreadsheets/d/1v2_cSHm_Jn19BZARhl6XzrShZ99ARAT6emAw8rp1AUk/gviz/tq?tqx=out:csv&gid=395929549';
 
-// Column indices for the 11 focused columns (0-indexed)
+// Column indices (0-indexed)
 const COL = {
+    invoiceDate: 6,    // Invoice Date (DD/MM/YYYY)
     productName: 11,   // Product Name
     qty: 12,           // Qty
     amount: 13,        // Amount
@@ -15,6 +16,16 @@ const COL = {
     shopSegment: 25,   // Shop_Segment
     productSegment: 26 // Product_Segment
 };
+
+function parseDDMMYYYY(str) {
+    if (!str) return null;
+    const cleaned = str.replace(/"/g, '').trim();
+    const parts = cleaned.split('/');
+    if (parts.length !== 3) return null;
+    const [dd, mm, yyyy] = parts;
+    const d = new Date(parseInt(yyyy, 10), parseInt(mm, 10) - 1, parseInt(dd, 10));
+    return isNaN(d.getTime()) ? null : d;
+}
 
 /**
  * Parse a single CSV line handling quoted fields with commas.
@@ -74,11 +85,15 @@ export async function fetchTransactions() {
 
             if (isNaN(qty) || isNaN(amount)) return null;
 
+            const invoiceDate = parseDDMMYYYY(cols[COL.invoiceDate]);
+
             return {
                 productName: cols[COL.productName] || '',
                 qty,
                 amount,
                 month: cols[COL.month] || '',
+                invoiceDate,
+                invoiceDay: invoiceDate ? invoiceDate.getDate() : null,
                 dayOfWeek: cols[COL.dayOfWeek] || '',
                 isWeekend: cols[COL.isWeekend] === 'TRUE',
                 shopType: cols[COL.shopType] || '',

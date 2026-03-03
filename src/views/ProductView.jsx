@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, LineChart, Line, Cell
+    ResponsiveContainer, LineChart, Line, Cell, Legend
 } from 'recharts';
-import { TrendingUp, Package, ShoppingBag, Store, ChevronDown } from 'lucide-react';
+import { TrendingUp, Package, ShoppingBag, Store, ChevronDown, Calendar, DollarSign } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import ChartCard from '../components/ChartCard';
 import DataBarTable from '../components/DataBarTable';
@@ -18,7 +18,7 @@ const MONTH_ORDER = [
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
-        <div className="bg-white px-4 py-3 rounded-lg shadow-lg border border-slate-200">
+        <div className="bg-white px-4 py-3 rounded-lg shadow-lg border border-slate-200 max-w-xs">
             <p className="font-bold text-slate-700 text-sm mb-1">{label}</p>
             {payload.map((p, i) => (
                 <p key={i} className="text-xs" style={{ color: p.color }}>
@@ -75,9 +75,64 @@ function getTopItemsWithMoM(data, key, months, limit = 10) {
         .slice(0, limit);
 }
 
+// Day Filter Bar Component
+const DayFilterBar = ({ availableDays, dayFrom, dayTo, onDayClick, onClear }) => {
+    return (
+        <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <Calendar size={13} className="text-pink-500" />
+                    Filter by Date
+                </div>
+                {(dayFrom !== null) && (
+                    <button
+                        onClick={onClear}
+                        className="text-[11px] font-semibold text-pink-600 hover:text-pink-800 transition-colors px-2 py-0.5 rounded hover:bg-pink-50"
+                    >
+                        ✕ Clear
+                    </button>
+                )}
+            </div>
+            <div className="flex flex-wrap gap-1">
+                {availableDays.map(day => {
+                    const isSelected = dayFrom !== null && dayTo !== null && day >= dayFrom && day <= dayTo;
+                    const isEndpoint = day === dayFrom || day === dayTo;
+                    return (
+                        <button
+                            key={day}
+                            onClick={() => onDayClick(day)}
+                            className={`
+                                w-8 h-8 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer
+                                ${isEndpoint
+                                    ? 'bg-gradient-to-br from-pink-600 via-red-500 to-orange-500 text-white shadow-sm scale-105'
+                                    : isSelected
+                                        ? 'bg-red-50 text-red-700 border border-red-200'
+                                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-transparent'
+                                }
+                            `}
+                        >
+                            {day}
+                        </button>
+                    );
+                })}
+            </div>
+            {dayFrom !== null && (
+                <div className="text-[11px] text-slate-500">
+                    {dayFrom === dayTo
+                        ? <span>📅 Showing date <strong className="text-slate-700">{dayFrom}</strong></span>
+                        : <span>📅 Showing dates <strong className="text-slate-700">{dayFrom}</strong> — <strong className="text-slate-700">{dayTo}</strong></span>
+                    }
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ProductView = ({ filteredData }) => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedProduct, setSelectedProduct] = useState('All');
+    const [dayFrom, setDayFrom] = useState(null);
+    const [dayTo, setDayTo] = useState(null);
 
     const categories = useMemo(() => [...new Set(filteredData.map(t => t.productSub).filter(Boolean))].sort(), [filteredData]);
     const products = useMemo(() => {
@@ -86,34 +141,175 @@ const ProductView = ({ filteredData }) => {
         return [...new Set(data.map(t => t.productName).filter(Boolean))].sort();
     }, [filteredData, selectedCategory]);
 
-    const viewData = useMemo(() => {
+    // Base data: filtered by category/product but NOT by day (for chart)
+    const baseData = useMemo(() => {
         let data = filteredData;
         if (selectedCategory !== 'All') data = data.filter(t => t.productSub === selectedCategory);
         if (selectedProduct !== 'All') data = data.filter(t => t.productName === selectedProduct);
         return data;
     }, [filteredData, selectedCategory, selectedProduct]);
 
+    // viewData: base data + day filter applied (for stats, tables, etc.)
+    const viewData = useMemo(() => {
+        if (dayFrom === null) return baseData;
+        return baseData.filter(t => t.invoiceDay >= dayFrom && t.invoiceDay <= dayTo);
+    }, [baseData, dayFrom, dayTo]);
+
     const handleCategoryChange = (val) => {
         setSelectedCategory(val);
         setSelectedProduct('All');
+        setDayFrom(null);
+        setDayTo(null);
+    };
+
+    const handleProductChange = (val) => {
+        setSelectedProduct(val);
+        setDayFrom(null);
+        setDayTo(null);
     };
 
     const level = selectedProduct !== 'All' ? 3 : selectedCategory !== 'All' ? 2 : 1;
-    const months = useMemo(() => getSortedMonths(viewData), [viewData]);
+    const months = useMemo(() => getSortedMonths(baseData), [baseData]);
+    const isSingleMonth = months.length === 1;
+
+    // Available days for the day filter bar
+    const availableDays = useMemo(() => {
+        if (!isSingleMonth) return [];
+        const days = new Set(baseData.map(t => t.invoiceDay).filter(Boolean));
+        return [...days].sort((a, b) => a - b);
+    }, [baseData, isSingleMonth]);
+
+    // Day click handler: first click = set single day, second click = set range end
+    const handleDayClick = useCallback((day) => {
+        if (dayFrom === null) {
+            setDayFrom(day);
+            setDayTo(day);
+        } else if (dayFrom === day && dayTo === day) {
+            setDayFrom(null);
+            setDayTo(null);
+        } else if (dayFrom !== null && dayTo === dayFrom) {
+            const from = Math.min(dayFrom, day);
+            const to = Math.max(dayFrom, day);
+            setDayFrom(from);
+            setDayTo(to);
+        } else {
+            setDayFrom(day);
+            setDayTo(day);
+        }
+    }, [dayFrom, dayTo]);
+
+    const handleDayClear = useCallback(() => {
+        setDayFrom(null);
+        setDayTo(null);
+    }, []);
+
+    // Chart click handler
+    const handleChartClick = useCallback((data) => {
+        if (data && data.activePayload && data.activePayload.length > 0) {
+            const clickedDay = parseInt(data.activeLabel, 10);
+            if (!isNaN(clickedDay)) {
+                handleDayClick(clickedDay);
+            }
+        }
+    }, [handleDayClick]);
+
+    // Reset day filter when month changes
+    useMemo(() => {
+        if (!isSingleMonth) {
+            setDayFrom(null);
+            setDayTo(null);
+        }
+    }, [isSingleMonth]);
 
     const stats = useMemo(() => {
         const totalRevenue = viewData.reduce((s, t) => s + t.amount, 0);
         const totalQty = viewData.reduce((s, t) => s + t.qty, 0);
+        const totalTxns = viewData.length;
+        const aov = totalTxns > 0 ? Math.round(totalRevenue / totalTxns) : 0;
         const byMonth = {};
         viewData.forEach(t => { byMonth[t.month] = (byMonth[t.month] || 0) + t.amount; });
-        return { totalRevenue, totalQty, mom: calcMoM(byMonth, months), yoy: calcYoY(byMonth, months) };
+        return { totalRevenue, totalQty, totalTxns, aov, mom: calcMoM(byMonth, months), yoy: calcYoY(byMonth, months) };
     }, [viewData, months]);
 
-    const trendData = useMemo(() => {
-        const byMonth = {};
-        viewData.forEach(t => { byMonth[t.month] = (byMonth[t.month] || 0) + t.amount; });
-        return months.map(m => ({ month: m, revenue: Math.round(byMonth[m] || 0) }));
-    }, [viewData, months]);
+    // ---- Revenue Trend by Category (multi-line) — uses baseData for chart ----
+    const { categoryTrendData, trendCategories } = useMemo(() => {
+        if (isSingleMonth) {
+            const catRevenue = {};
+            baseData.forEach(t => { catRevenue[t.productSub] = (catRevenue[t.productSub] || 0) + t.amount; });
+            const sortedCats = Object.entries(catRevenue)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([name]) => name);
+
+            const byDayCat = {};
+            baseData.forEach(t => {
+                const day = t.invoiceDay;
+                if (!day) return;
+                if (!byDayCat[day]) byDayCat[day] = { period: String(day) };
+                if (sortedCats.includes(t.productSub)) {
+                    byDayCat[day][t.productSub] = (byDayCat[day][t.productSub] || 0) + t.amount;
+                }
+            });
+
+            const days = Object.keys(byDayCat).map(Number).sort((a, b) => a - b);
+            const data = days.map(d => {
+                const row = byDayCat[d];
+                sortedCats.forEach(c => { if (row[c]) row[c] = Math.round(row[c]); });
+                return row;
+            });
+
+            return { categoryTrendData: data, trendCategories: sortedCats };
+        }
+
+        const catRevenue = {};
+        baseData.forEach(t => { catRevenue[t.productSub] = (catRevenue[t.productSub] || 0) + t.amount; });
+        const sortedCats = Object.entries(catRevenue)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([name]) => name);
+
+        const byMonthCat = {};
+        months.forEach(m => { byMonthCat[m] = { period: m }; });
+        baseData.forEach(t => {
+            if (sortedCats.includes(t.productSub)) {
+                byMonthCat[t.month][t.productSub] = (byMonthCat[t.month][t.productSub] || 0) + t.amount;
+            }
+        });
+
+        const data = months.map(m => {
+            const row = byMonthCat[m];
+            sortedCats.forEach(c => { if (row[c]) row[c] = Math.round(row[c]); });
+            return row;
+        });
+
+        return { categoryTrendData: data, trendCategories: sortedCats };
+    }, [baseData, months, isSingleMonth]);
+
+    // ---- Simple trend (for level 2 & 3) — uses baseData for chart ----
+    const simpleTrendData = useMemo(() => {
+        let rawData;
+        if (isSingleMonth) {
+            const byDay = {};
+            baseData.forEach(t => {
+                const day = t.invoiceDay;
+                if (!day) return;
+                byDay[day] = (byDay[day] || 0) + t.amount;
+            });
+            const days = Object.keys(byDay).map(Number).sort((a, b) => a - b);
+            rawData = days.map(d => ({ period: String(d), revenue: Math.round(byDay[d] || 0) }));
+        } else {
+            const byMonth = {};
+            baseData.forEach(t => { byMonth[t.month] = (byMonth[t.month] || 0) + t.amount; });
+            rawData = months.map(m => ({ period: m, revenue: Math.round(byMonth[m] || 0) }));
+        }
+        // Add 3-period moving average
+        const windowSize = 3;
+        return rawData.map((item, idx) => {
+            if (idx < windowSize - 1) return { ...item, movingAvg: null };
+            const sum = rawData.slice(idx - windowSize + 1, idx + 1).reduce((s, d) => s + d.revenue, 0);
+            return { ...item, movingAvg: Math.round(sum / windowSize) };
+        });
+    }, [baseData, months, isSingleMonth]);
 
     const topProducts = useMemo(() => {
         if (level === 3) return [];
@@ -137,6 +333,40 @@ const ProductView = ({ filteredData }) => {
             .slice(0, 10);
     }, [viewData, level]);
 
+    // Determine which trend chart to show
+    const showCategoryTrend = level === 1 && trendCategories.length > 0;
+
+    // Custom dot renderer for chart: highlight selected days
+    const renderDot = useCallback((props) => {
+        const { cx, cy, payload } = props;
+        const day = parseInt(payload.period, 10);
+        const isSelected = dayFrom !== null && dayTo !== null && day >= dayFrom && day <= dayTo;
+        return (
+            <circle
+                cx={cx}
+                cy={cy}
+                r={isSelected ? 6 : 3}
+                fill={isSelected ? '#f97316' : '#e8222b'}
+                stroke={isSelected ? '#fff' : 'none'}
+                strokeWidth={isSelected ? 2 : 0}
+                style={{ cursor: 'pointer' }}
+            />
+        );
+    }, [dayFrom, dayTo]);
+
+    // Day filter UI section (shared between chart types)
+    const dayFilterUI = isSingleMonth && availableDays.length > 0 ? (
+        <div className="mt-3 pt-3 border-t border-slate-100">
+            <DayFilterBar
+                availableDays={availableDays}
+                dayFrom={dayFrom}
+                dayTo={dayTo}
+                onDayClick={handleDayClick}
+                onClear={handleDayClear}
+            />
+        </div>
+    ) : null;
+
     return (
         <div className="space-y-5 animate-view-in">
             {/* Contextual Filters */}
@@ -158,7 +388,7 @@ const ProductView = ({ filteredData }) => {
                     <select
                         className="pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all min-w-[180px]"
                         value={selectedProduct}
-                        onChange={e => setSelectedProduct(e.target.value)}
+                        onChange={e => handleProductChange(e.target.value)}
                     >
                         <option value="All">All Products</option>
                         {products.map(p => <option key={p} value={p}>{p}</option>)}
@@ -167,7 +397,7 @@ const ProductView = ({ filteredData }) => {
                 </div>
                 {(selectedCategory !== 'All' || selectedProduct !== 'All') && (
                     <button
-                        onClick={() => { setSelectedCategory('All'); setSelectedProduct('All'); }}
+                        onClick={() => { setSelectedCategory('All'); setSelectedProduct('All'); setDayFrom(null); setDayTo(null); }}
                         className="text-xs font-semibold text-pink-600 hover:text-pink-800 transition-colors px-2 py-1"
                     >
                         ✕ Clear
@@ -179,7 +409,7 @@ const ProductView = ({ filteredData }) => {
             </section>
 
             {/* KPI Cards */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatCard
                     title="Total Revenue"
                     value={`฿${Math.round(stats.totalRevenue).toLocaleString()}`}
@@ -197,6 +427,14 @@ const ProductView = ({ filteredData }) => {
                     icon={Package}
                     gradient="from-slate-600 to-slate-700"
                     subtitle="Total quantity sold"
+                />
+                <StatCard
+                    title="Avg. Order Value"
+                    value={`฿${stats.aov.toLocaleString()}`}
+                    numericValue={stats.aov}
+                    icon={DollarSign}
+                    gradient="from-amber-500 to-amber-600"
+                    subtitle={`${stats.totalTxns.toLocaleString()} transactions`}
                 />
             </section>
 
@@ -223,28 +461,95 @@ const ProductView = ({ filteredData }) => {
                 </section>
             )}
 
-            {/* Revenue Trend */}
-            <section>
-                <ChartCard title="Revenue Trend" icon={TrendingUp} iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500">
-                    <div className="h-[280px]">
-                        {trendData.length <= 1 ? (
-                            <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-                                {trendData.length === 1 ? `Single period: ฿${trendData[0].revenue.toLocaleString()}` : 'No trend data available'}
-                            </div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={trendData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={v => `฿${(v / 1000).toFixed(0)}k`} />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#e8222b" strokeWidth={2} dot={{ r: 3, fill: '#e8222b' }} activeDot={{ r: 5 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                </ChartCard>
-            </section>
+            {/* Revenue Trend — Category Breakdown (level 1) */}
+            {showCategoryTrend && (
+                <section>
+                    <ChartCard
+                        title={isSingleMonth ? `Revenue by Date — ${months[0]} (by Category)` : 'Revenue Trend by Category'}
+                        icon={TrendingUp}
+                        iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500"
+                    >
+                        <div className="h-[320px]">
+                            {categoryTrendData.length === 0 ? (
+                                <div className="flex items-center justify-center h-full text-slate-400 text-sm">No trend data available</div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={categoryTrendData} onClick={isSingleMonth ? handleChartClick : undefined}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={v => `฿${(v / 1000).toFixed(0)}k`} />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                                        {trendCategories.map((cat, i) => (
+                                            <Line
+                                                key={cat}
+                                                type="monotone"
+                                                dataKey={cat}
+                                                name={cat}
+                                                stroke={COLORS[i % COLORS.length]}
+                                                strokeWidth={2}
+                                                dot={{ r: 3, fill: COLORS[i % COLORS.length] }}
+                                                activeDot={{ r: 6, cursor: 'pointer' }}
+                                                connectNulls
+                                            />
+                                        ))}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                        {dayFilterUI}
+                    </ChartCard>
+                </section>
+            )}
+
+            {/* Revenue Trend — Simple (level 2 & 3) */}
+            {!showCategoryTrend && (
+                <section>
+                    <ChartCard
+                        title={isSingleMonth ? `Revenue by Date — ${months[0]}` : 'Revenue Trend'}
+                        icon={TrendingUp}
+                        iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500"
+                    >
+                        <div className="h-[280px]">
+                            {simpleTrendData.length === 0 ? (
+                                <div className="flex items-center justify-center h-full text-slate-400 text-sm">No trend data available</div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={simpleTrendData} onClick={isSingleMonth ? handleChartClick : undefined}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={v => `฿${(v / 1000).toFixed(0)}k`} />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="revenue"
+                                            name="Revenue"
+                                            stroke="#e8222b"
+                                            strokeWidth={2}
+                                            dot={isSingleMonth ? renderDot : { r: 3, fill: '#e8222b' }}
+                                            activeDot={{ r: 6, cursor: 'pointer' }}
+                                        />
+                                        {simpleTrendData.length >= 3 && (
+                                            <Line
+                                                type="monotone"
+                                                dataKey="movingAvg"
+                                                name="3-Period Avg"
+                                                stroke="#6366f1"
+                                                strokeWidth={2}
+                                                strokeDasharray="6 3"
+                                                dot={false}
+                                                connectNulls={false}
+                                            />
+                                        )}
+                                        <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                        {dayFilterUI}
+                    </ChartCard>
+                </section>
+            )}
 
             {/* Top Products Table (level 1 & 2) */}
             {level !== 3 && (

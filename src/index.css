@@ -7,6 +7,13 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background: #f8f9fb;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body,
+body.dark {
+    background: #0f172a;
+    color: #e2e8f0;
 }
 
 /* --- Cards: Clean corporate style --- */
@@ -15,7 +22,7 @@ body {
     border: 1px solid #e5e7eb;
     border-radius: 0.75rem;
     padding: 1.25rem 1.5rem;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
 }
@@ -41,16 +48,34 @@ body {
     opacity: 1;
 }
 
+.dark .stat-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.dark .stat-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
 .chart-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 0.75rem;
     padding: 1.25rem;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .chart-card:hover {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.dark .chart-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.dark .chart-card:hover {
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
 }
 
 .filter-bar {
@@ -58,6 +83,147 @@ body {
     border: 1px solid #e5e7eb;
     border-radius: 0.75rem;
     padding: 0.875rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.dark .filter-bar {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+/* --- Dark mode text overrides --- */
+.dark .text-slate-800 {
+    color: #e2e8f0;
+}
+
+.dark .text-slate-700 {
+    color: #cbd5e1;
+}
+
+.dark .text-slate-600 {
+    color: #94a3b8;
+}
+
+.dark .text-slate-500 {
+    color: #64748b;
+}
+
+.dark .text-slate-400 {
+    color: #64748b;
+}
+
+/* --- Dark mode backgrounds --- */
+.dark .bg-white {
+    background-color: #1e293b;
+}
+
+.dark .bg-slate-50 {
+    background-color: #0f172a;
+}
+
+.dark .bg-slate-100 {
+    background-color: #1e293b;
+}
+
+/* --- Dark mode borders --- */
+.dark .border-slate-200 {
+    border-color: #334155;
+}
+
+.dark .border-slate-100 {
+    border-color: #1e293b;
+}
+
+/* --- Dark mode form elements --- */
+.dark select {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.dark select:focus {
+    border-color: #f472b6;
+}
+
+/* --- Dark mode tooltips --- */
+.dark .recharts-tooltip-wrapper .bg-white {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+/* --- Dark mode table --- */
+.dark table tbody tr:hover {
+    background-color: rgba(236, 72, 153, 0.08);
+}
+
+.dark .hover\:bg-pink-50\/40:hover {
+    background-color: rgba(236, 72, 153, 0.08);
+}
+
+.dark .divide-slate-50> :not([hidden])~ :not([hidden]) {
+    border-color: #334155;
+}
+
+/* --- Dark mode badges --- */
+.dark .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.15);
+}
+
+.dark .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.15);
+}
+
+.dark .bg-pink-50 {
+    background-color: rgba(236, 72, 153, 0.15);
+}
+
+/* --- Dark mode HeatMap sticky cells --- */
+.dark .sticky.bg-white {
+    background-color: #1e293b;
+}
+
+/* --- Dark mode scrollbar --- */
+.dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* --- Dark mode toggle button --- */
+.dark-toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: #e2e8f0;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    padding: 0;
+}
+
+.dark-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.dark .dark-toggle {
+    background: #6366f1;
+}
+
+.dark .dark-toggle::after {
+    transform: translateX(20px);
+    background: #1e293b;
 }
 
 /* --- Animations --- */
@@ -102,6 +268,19 @@ body {
 .recharts-pie-sector {
     cursor: pointer;
     transition: opacity 0.2s ease;
+}
+
+/* --- Dark Recharts overrides --- */
+.dark .recharts-cartesian-grid line {
+    stroke: #334155;
+}
+
+.dark .recharts-text {
+    fill: #94a3b8;
+}
+
+.dark .recharts-legend-item-text {
+    color: #94a3b8 !important;
 }
 
 /* --- Custom Scrollbar --- */

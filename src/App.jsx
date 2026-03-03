@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Upload, Package, Store, AlertCircle } from 'lucide-react';
+import { Upload, Package, Store, AlertCircle, Sun, Moon } from 'lucide-react';
 import { fetchTransactions } from './data/fetchTransactions';
 import FilterBar from './components/FilterBar';
+import DashboardSkeleton from './components/DashboardSkeleton';
 import ProductView from './views/ProductView';
 import ShopView from './views/ShopView';
 
@@ -18,6 +19,12 @@ const App = () => {
   const [startMonth, setStartMonth] = useState('All');
   const [endMonth, setEndMonth] = useState('All');
   const fileInputRef = useRef(null);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     fetchTransactions()
@@ -53,18 +60,13 @@ const App = () => {
     return transactions.filter(t => rangeMonths.includes(t.month));
   }, [transactions, startMonth, endMonth]);
 
-  const allShopCount = useMemo(() => new Set(transactions.map(t => t.shopName)).size, [transactions]);
+  const allShopCount = useMemo(() => {
+    const pairs = new Set(transactions.map(t => `${t.shopType}|||${t.shopName}`));
+    return pairs.size;
+  }, [transactions]);
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center font-sans bg-white">
-        <div className="text-center">
-          <div className="w-14 h-14 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-5"></div>
-          <p className="text-slate-600 text-lg font-semibold">Loading Transaction Data...</p>
-          <p className="text-slate-400 text-sm mt-1">Fetching from Google Sheets</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error && transactions.length === 0) {
@@ -120,6 +122,13 @@ const App = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all"
+                title={darkMode ? 'Light Mode' : 'Dark Mode'}
+              >
+                {darkMode ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-slate-500" />}
+              </button>
               <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleImportFile} />
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -149,7 +158,7 @@ const App = () => {
         </div>
 
         {activeView === 'shop' ? (
-          <ShopView filteredData={filteredData} allShopCount={allShopCount} startMonth={startMonth} endMonth={endMonth} />
+          <ShopView filteredData={filteredData} allTransactions={transactions} startMonth={startMonth} endMonth={endMonth} />
         ) : (
           <ProductView filteredData={filteredData} />
         )}

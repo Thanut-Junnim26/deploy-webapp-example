@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { Store, TrendingUp, Package, ShoppingBag, ChevronDown } from 'lucide-react';
+import { Store, TrendingUp, Package, ShoppingBag, ChevronDown, Calendar, AlertTriangle, DollarSign } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import ChartCard from '../components/ChartCard';
 import DataBarTable from '../components/DataBarTable';
@@ -84,50 +84,313 @@ function getTopItemsWithMoM(data, key, months, limit = 10) {
         .slice(0, limit);
 }
 
-const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
+// Day Filter Bar Component
+const DayFilterBar = ({ availableDays, dayFrom, dayTo, onDayClick, onClear }) => {
+    return (
+        <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <Calendar size={13} className="text-pink-500" />
+                    Filter by Date
+                </div>
+                {(dayFrom !== null) && (
+                    <button
+                        onClick={onClear}
+                        className="text-[11px] font-semibold text-pink-600 hover:text-pink-800 transition-colors px-2 py-0.5 rounded hover:bg-pink-50"
+                    >
+                        ✕ Clear
+                    </button>
+                )}
+            </div>
+            <div className="flex flex-wrap gap-1">
+                {availableDays.map(day => {
+                    const isSelected = dayFrom !== null && dayTo !== null && day >= dayFrom && day <= dayTo;
+                    const isEndpoint = day === dayFrom || day === dayTo;
+                    return (
+                        <button
+                            key={day}
+                            onClick={() => onDayClick(day)}
+                            className={`
+                                w-8 h-8 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer
+                                ${isEndpoint
+                                    ? 'bg-gradient-to-br from-pink-600 via-red-500 to-orange-500 text-white shadow-sm scale-105'
+                                    : isSelected
+                                        ? 'bg-red-50 text-red-700 border border-red-200'
+                                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-transparent'
+                                }
+                            `}
+                        >
+                            {day}
+                        </button>
+                    );
+                })}
+            </div>
+            {dayFrom !== null && (
+                <div className="text-[11px] text-slate-500">
+                    {dayFrom === dayTo
+                        ? <span>📅 Showing date <strong className="text-slate-700">{dayFrom}</strong></span>
+                        : <span>📅 Showing dates <strong className="text-slate-700">{dayFrom}</strong> — <strong className="text-slate-700">{dayTo}</strong></span>
+                    }
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Inactive Shop Alert Component
+const InactiveShopAlert = ({ shops, periodLabel, onShopClick }) => {
+    const [expanded, setExpanded] = useState(false);
+    const byType = {};
+    shops.forEach(s => {
+        if (!byType[s.shopType]) byType[s.shopType] = [];
+        byType[s.shopType].push(s.shopName);
+    });
+
+    return (
+        <section className="chart-card border-l-4 border-l-amber-400 overflow-hidden">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center gap-3 text-left"
+            >
+                <div className="p-2 rounded-lg bg-amber-50">
+                    <AlertTriangle size={16} className="text-amber-500" />
+                </div>
+                <div className="flex-1">
+                    <h3 className="text-sm font-bold text-slate-700">
+                        Inactive Shops
+                        <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                            {shops.length}
+                        </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400">Shops with zero transactions {periodLabel}</p>
+                </div>
+                <ChevronDown
+                    size={16}
+                    className={`text-slate-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                />
+            </button>
+            {expanded && (
+                <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+                    {Object.entries(byType).sort().map(([type, names]) => (
+                        <div key={type}>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{type} ({names.length})</p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {names.sort().map(name => (
+                                    <button
+                                        key={name}
+                                        onClick={(e) => { e.stopPropagation(); onShopClick?.(type, name); }}
+                                        className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-50 text-slate-600 border border-slate-100 font-medium cursor-pointer hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700 transition-all duration-150"
+                                        title={`Filter to ${name}`}
+                                    >
+                                        {name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </section>
+    );
+};
+
+const ShopView = ({ filteredData, allTransactions, startMonth, endMonth }) => {
     const [selectedShopType, setSelectedShopType] = useState('All');
     const [selectedShop, setSelectedShop] = useState('All');
+    const [dayFrom, setDayFrom] = useState(null);
+    const [dayTo, setDayTo] = useState(null);
 
     const shopTypes = useMemo(() => [...new Set(filteredData.map(t => t.shopType).filter(Boolean))].sort(), [filteredData]);
+
+    const allShopCount = useMemo(() => {
+        const data = selectedShopType !== 'All'
+            ? allTransactions.filter(t => t.shopType === selectedShopType)
+            : allTransactions;
+        return new Set(data.map(t => `${t.shopType}|||${t.shopName}`)).size;
+    }, [allTransactions, selectedShopType]);
+
     const shopNames = useMemo(() => {
         let data = filteredData;
         if (selectedShopType !== 'All') data = data.filter(t => t.shopType === selectedShopType);
         return [...new Set(data.map(t => t.shopName).filter(Boolean))].sort();
     }, [filteredData, selectedShopType]);
 
-    const viewData = useMemo(() => {
+    // Base data: filtered by shopType/shop but NOT by day (for chart)
+    const baseData = useMemo(() => {
         let data = filteredData;
         if (selectedShopType !== 'All') data = data.filter(t => t.shopType === selectedShopType);
         if (selectedShop !== 'All') data = data.filter(t => t.shopName === selectedShop);
         return data;
     }, [filteredData, selectedShopType, selectedShop]);
 
+    // viewData: base data + day filter applied (for stats, tables, etc.)
+    const viewData = useMemo(() => {
+        if (dayFrom === null) return baseData;
+        return baseData.filter(t => t.invoiceDay >= dayFrom && t.invoiceDay <= dayTo);
+    }, [baseData, dayFrom, dayTo]);
+
     const handleShopTypeChange = (val) => {
         setSelectedShopType(val);
         setSelectedShop('All');
+        setDayFrom(null);
+        setDayTo(null);
+    };
+
+    const handleShopChange = (val) => {
+        setSelectedShop(val);
+        setDayFrom(null);
+        setDayTo(null);
+    };
+
+    const handleInactiveShopClick = (shopType, shopName) => {
+        setSelectedShopType(shopType);
+        setSelectedShop(shopName);
+        setDayFrom(null);
+        setDayTo(null);
     };
 
     const level = selectedShop !== 'All' ? 3 : selectedShopType !== 'All' ? 2 : 1;
-    const months = useMemo(() => getSortedMonths(viewData), [viewData]);
+    const months = useMemo(() => getSortedMonths(baseData), [baseData]);
+    const isSingleMonth = months.length === 1;
+
+    // Available days for the day filter bar
+    const availableDays = useMemo(() => {
+        if (!isSingleMonth) return [];
+        const days = new Set(baseData.map(t => t.invoiceDay).filter(Boolean));
+        return [...days].sort((a, b) => a - b);
+    }, [baseData, isSingleMonth]);
+
+    // Day click handler: first click = set single day, second click = set range end
+    const handleDayClick = useCallback((day) => {
+        if (dayFrom === null) {
+            // First click: select single day
+            setDayFrom(day);
+            setDayTo(day);
+        } else if (dayFrom === day && dayTo === day) {
+            // Click same day again: clear
+            setDayFrom(null);
+            setDayTo(null);
+        } else if (dayFrom !== null && dayTo === dayFrom) {
+            // Second click: set range
+            const from = Math.min(dayFrom, day);
+            const to = Math.max(dayFrom, day);
+            setDayFrom(from);
+            setDayTo(to);
+        } else {
+            // Already a range: start fresh
+            setDayFrom(day);
+            setDayTo(day);
+        }
+    }, [dayFrom, dayTo]);
+
+    const handleDayClear = useCallback(() => {
+        setDayFrom(null);
+        setDayTo(null);
+    }, []);
+
+    // Chart click handler
+    const handleChartClick = useCallback((data) => {
+        if (data && data.activePayload && data.activePayload.length > 0) {
+            const clickedDay = parseInt(data.activeLabel, 10);
+            if (!isNaN(clickedDay)) {
+                handleDayClick(clickedDay);
+            }
+        }
+    }, [handleDayClick]);
+
+    // Reset day filter when month changes
+    useMemo(() => {
+        if (!isSingleMonth) {
+            setDayFrom(null);
+            setDayTo(null);
+        }
+    }, [isSingleMonth]);
 
     const stats = useMemo(() => {
         const totalRevenue = viewData.reduce((s, t) => s + t.amount, 0);
         const totalQty = viewData.reduce((s, t) => s + t.qty, 0);
-        const activeShops = new Set(viewData.map(t => t.shopName)).size;
+        const totalTxns = viewData.length;
+        const aov = totalTxns > 0 ? Math.round(totalRevenue / totalTxns) : 0;
+        const activeShops = new Set(viewData.map(t => `${t.shopType}|||${t.shopName}`)).size;
         const byMonth = {};
         viewData.forEach(t => { byMonth[t.month] = (byMonth[t.month] || 0) + t.amount; });
         const mom = calcMoM(byMonth, months);
         const yoy = calcYoY(byMonth, months);
         let shopSegment = null;
         if (level === 3 && viewData.length > 0) shopSegment = viewData[0].shopSegment;
-        return { totalRevenue, totalQty, activeShops, mom, yoy, shopSegment };
+        return { totalRevenue, totalQty, totalTxns, aov, activeShops, mom, yoy, shopSegment };
     }, [viewData, months, level]);
 
+    // Trend data: always uses baseData (NOT day-filtered) so chart is always full
     const trendData = useMemo(() => {
-        const byMonth = {};
-        viewData.forEach(t => { byMonth[t.month] = (byMonth[t.month] || 0) + t.amount; });
-        return months.map(m => ({ month: m, revenue: Math.round(byMonth[m] || 0) }));
-    }, [viewData, months]);
+        let rawData;
+        if (isSingleMonth) {
+            const byDay = {};
+            baseData.forEach(t => {
+                const day = t.invoiceDay;
+                if (!day) return;
+                byDay[day] = (byDay[day] || 0) + t.amount;
+            });
+            const days = Object.keys(byDay).map(Number).sort((a, b) => a - b);
+            rawData = days.map(d => ({ period: String(d), revenue: Math.round(byDay[d] || 0) }));
+        } else {
+            const byMonth = {};
+            baseData.forEach(t => { byMonth[t.month] = (byMonth[t.month] || 0) + t.amount; });
+            rawData = months.map(m => ({ period: m, revenue: Math.round(byMonth[m] || 0) }));
+        }
+        // Add 3-period moving average
+        const windowSize = 3;
+        return rawData.map((item, idx) => {
+            if (idx < windowSize - 1) return { ...item, movingAvg: null };
+            const sum = rawData.slice(idx - windowSize + 1, idx + 1).reduce((s, d) => s + d.revenue, 0);
+            return { ...item, movingAvg: Math.round(sum / windowSize) };
+        });
+    }, [baseData, months, isSingleMonth]);
+
+    // Inactive shops: when viewing all data, check last 3 months; when filtered, check filter period
+    const inactiveShopsList = useMemo(() => {
+        if (level === 3) return { shops: [], periodLabel: '' };
+
+        // Determine the pool of shops to check (scoped to selected shopType)
+        const relevantTransactions = selectedShopType !== 'All'
+            ? allTransactions.filter(t => t.shopType === selectedShopType)
+            : allTransactions;
+
+        const allShopPairs = new Set(relevantTransactions.map(t => `${t.shopType}|||${t.shopName}`));
+
+        // Check if month filter is applied (using actual filter props, not month count)
+        const isMonthFiltered = startMonth !== 'All' || endMonth !== 'All';
+
+        // Get all available months for the relevant shop type pool
+        const allAvailableMonths = [...new Set(relevantTransactions.map(t => t.month))]
+            .sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+
+        let activePool;
+        let periodLabel;
+        if (isMonthFiltered) {
+            // Use the filtered data
+            activePool = baseData;
+            periodLabel = 'in the selected period';
+        } else {
+            // Use last 3 months of data for this shop type
+            const last3 = allAvailableMonths.slice(-3);
+            activePool = relevantTransactions.filter(t => last3.includes(t.month));
+            periodLabel = `in the last 3 months (${last3.join(', ')})`;
+        }
+
+        const activeShopPairs = new Set(activePool.map(t => `${t.shopType}|||${t.shopName}`));
+
+        return {
+            shops: [...allShopPairs]
+                .filter(pair => !activeShopPairs.has(pair))
+                .map(pair => {
+                    const [type, name] = pair.split('|||');
+                    return { shopType: type, shopName: name };
+                })
+                .sort((a, b) => a.shopName.localeCompare(b.shopName)),
+            periodLabel
+        };
+    }, [allTransactions, baseData, months, selectedShopType, level, startMonth, endMonth]);
 
     const topProducts = useMemo(() => getTopItemsWithMoM(viewData, 'productName', months), [viewData, months]);
     const topShops = useMemo(() => {
@@ -165,6 +428,24 @@ const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
         color: SEGMENT_COLORS[stats.shopSegment]?.bg || 'bg-slate-100 text-slate-600'
     } : undefined;
 
+    // Custom dot renderer for chart: highlight selected days
+    const renderDot = useCallback((props) => {
+        const { cx, cy, payload } = props;
+        const day = parseInt(payload.period, 10);
+        const isSelected = dayFrom !== null && dayTo !== null && day >= dayFrom && day <= dayTo;
+        return (
+            <circle
+                cx={cx}
+                cy={cy}
+                r={isSelected ? 6 : 3}
+                fill={isSelected ? '#f97316' : '#e8222b'}
+                stroke={isSelected ? '#fff' : 'none'}
+                strokeWidth={isSelected ? 2 : 0}
+                style={{ cursor: 'pointer' }}
+            />
+        );
+    }, [dayFrom, dayTo]);
+
     return (
         <div className="space-y-5 animate-view-in">
             {/* Contextual Filters */}
@@ -186,7 +467,7 @@ const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
                     <select
                         className="pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all min-w-[180px]"
                         value={selectedShop}
-                        onChange={e => setSelectedShop(e.target.value)}
+                        onChange={e => handleShopChange(e.target.value)}
                     >
                         <option value="All">All Shops</option>
                         {shopNames.map(s => <option key={s} value={s}>{s}</option>)}
@@ -195,7 +476,7 @@ const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
                 </div>
                 {(selectedShopType !== 'All' || selectedShop !== 'All') && (
                     <button
-                        onClick={() => { setSelectedShopType('All'); setSelectedShop('All'); }}
+                        onClick={() => { setSelectedShopType('All'); setSelectedShop('All'); setDayFrom(null); setDayTo(null); }}
                         className="text-xs font-semibold text-pink-600 hover:text-pink-800 transition-colors px-2 py-1"
                     >
                         ✕ Clear
@@ -207,7 +488,7 @@ const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
             </section>
 
             {/* KPI Cards */}
-            <section className={`grid grid-cols-1 ${level === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+            <section className={`grid grid-cols-1 ${level === 3 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-4'} gap-4`}>
                 <StatCard
                     title="Total Revenue"
                     value={`฿${Math.round(stats.totalRevenue).toLocaleString()}`}
@@ -225,6 +506,14 @@ const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
                     icon={Package}
                     gradient="from-slate-600 to-slate-700"
                     subtitle="Total quantity sold"
+                />
+                <StatCard
+                    title="Avg. Order Value"
+                    value={`฿${stats.aov.toLocaleString()}`}
+                    numericValue={stats.aov}
+                    icon={DollarSign}
+                    gradient="from-amber-500 to-amber-600"
+                    subtitle={`${stats.totalTxns.toLocaleString()} transactions`}
                 />
                 {level !== 3 ? (
                     <StatCard
@@ -248,24 +537,59 @@ const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
 
             {/* Revenue Trend */}
             <section>
-                <ChartCard title="Revenue Trend" icon={TrendingUp} iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500">
+                <ChartCard
+                    title={isSingleMonth ? `Revenue by Date — ${months[0]}` : 'Revenue Trend'}
+                    icon={TrendingUp}
+                    iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500"
+                >
                     <div className="h-[280px]">
-                        {trendData.length <= 1 ? (
-                            <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-                                {trendData.length === 1 ? `Single period: ฿${trendData[0].revenue.toLocaleString()}` : 'No trend data available'}
-                            </div>
+                        {trendData.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-slate-400 text-sm">No trend data available</div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={trendData}>
+                                <LineChart data={trendData} onClick={isSingleMonth ? handleChartClick : undefined}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                    <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={v => `฿${(v / 1000).toFixed(0)}k`} />
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#e8222b" strokeWidth={2} dot={{ r: 3, fill: '#e8222b' }} activeDot={{ r: 5 }} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="revenue"
+                                        name="Revenue"
+                                        stroke="#e8222b"
+                                        strokeWidth={2}
+                                        dot={isSingleMonth ? renderDot : { r: 3, fill: '#e8222b' }}
+                                        activeDot={{ r: 6, cursor: 'pointer' }}
+                                    />
+                                    {trendData.length >= 3 && (
+                                        <Line
+                                            type="monotone"
+                                            dataKey="movingAvg"
+                                            name="3-Period Avg"
+                                            stroke="#6366f1"
+                                            strokeWidth={2}
+                                            strokeDasharray="6 3"
+                                            dot={false}
+                                            connectNulls={false}
+                                        />
+                                    )}
+                                    <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         )}
                     </div>
+                    {/* Inline day filter */}
+                    {isSingleMonth && availableDays.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+                            <DayFilterBar
+                                availableDays={availableDays}
+                                dayFrom={dayFrom}
+                                dayTo={dayTo}
+                                onDayClick={handleDayClick}
+                                onClear={handleDayClear}
+                            />
+                        </div>
+                    )}
                 </ChartCard>
             </section>
 
@@ -331,6 +655,11 @@ const ShopView = ({ filteredData, allShopCount, selectedMonth }) => {
                         iconGradient="from-slate-600 to-slate-700"
                     />
                 </section>
+            )}
+
+            {/* Inactive Shop Alert */}
+            {inactiveShopsList.shops?.length > 0 && level !== 3 && (
+                <InactiveShopAlert shops={inactiveShopsList.shops} periodLabel={inactiveShopsList.periodLabel} onShopClick={handleInactiveShopClick} />
             )}
         </div>
     );
