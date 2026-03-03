@@ -42,14 +42,14 @@ const MoMBadge = ({ value, label = 'MoM' }) => {
 
 const StatCard = ({ title, value, numericValue, icon: Icon, gradient, subtitle, mom, yoy, statusBadge }) => (
   <div className="stat-card group">
-    <div className="flex justify-between items-start mb-3">
-      <div className={`p-2.5 rounded-lg bg-gradient-to-br ${gradient}`}>
-        <Icon className="text-white" size={18} />
+    <div className="flex justify-between items-start mb-2 sm:mb-3">
+      <div className={`p-2 sm:p-2.5 rounded-lg bg-gradient-to-br ${gradient}`}>
+        <Icon className="text-white" size={16} />
       </div>
       <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">{title}</span>
     </div>
     <div>
-      <h3 className="text-2xl font-extrabold text-slate-800">
+      <h3 className="text-lg sm:text-2xl font-extrabold text-slate-800">
         {numericValue !== undefined ? (
           <AnimatedNumber
             value={numericValue}
@@ -65,9 +65,9 @@ const StatCard = ({ title, value, numericValue, icon: Icon, gradient, subtitle, 
           </span>
         </div>
       )}
-      <p className="text-xs text-slate-400 mt-1 font-medium">{subtitle}</p>
+      <p className="text-[10px] sm:text-xs text-slate-400 mt-1 font-medium">{subtitle}</p>
       {(mom !== undefined || yoy !== undefined) && (
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 sm:mt-2 flex-wrap">
           {mom !== undefined && <MoMBadge value={mom} label="MoM" />}
           {yoy !== undefined && <MoMBadge value={yoy} label="YoY" />}
         </div>

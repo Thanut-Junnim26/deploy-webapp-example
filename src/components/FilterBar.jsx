@@ -47,41 +47,43 @@ const FilterBar = ({ startMonth, setStartMonth, endMonth, setEndMonth, months })
         : null;
 
     return (
-        <section className="filter-bar flex flex-wrap items-center gap-3">
-            <div className="relative">
-                <label className="text-[10px] font-bold text-slate-400 absolute top-1.5 left-3 uppercase tracking-wider">
-                    From
-                </label>
-                <select
-                    className="pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all min-w-[130px]"
-                    value={startMonth}
-                    onChange={(e) => handleStartChange(e.target.value)}
-                >
-                    <option value="All">Earliest</option>
-                    {startMonths.map((m) => (
-                        <option key={m} value={m}>{m}</option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-6 text-slate-400 pointer-events-none" size={14} />
-            </div>
+        <section className="filter-bar flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+                <div className="relative flex-1 sm:flex-none">
+                    <label className="text-[10px] font-bold text-slate-400 absolute top-1.5 left-3 uppercase tracking-wider">
+                        From
+                    </label>
+                    <select
+                        className="w-full sm:w-auto pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all sm:min-w-[130px]"
+                        value={startMonth}
+                        onChange={(e) => handleStartChange(e.target.value)}
+                    >
+                        <option value="All">Earliest</option>
+                        {startMonths.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-6 text-slate-400 pointer-events-none" size={14} />
+                </div>
 
-            <span className="text-slate-300 text-sm font-bold">→</span>
+                <span className="text-slate-300 text-sm font-bold shrink-0">→</span>
 
-            <div className="relative">
-                <label className="text-[10px] font-bold text-slate-400 absolute top-1.5 left-3 uppercase tracking-wider">
-                    To
-                </label>
-                <select
-                    className="pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all min-w-[130px]"
-                    value={endMonth}
-                    onChange={(e) => handleEndChange(e.target.value)}
-                >
-                    <option value="All">Latest</option>
-                    {endMonths.map((m) => (
-                        <option key={m} value={m}>{m}</option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-6 text-slate-400 pointer-events-none" size={14} />
+                <div className="relative flex-1 sm:flex-none">
+                    <label className="text-[10px] font-bold text-slate-400 absolute top-1.5 left-3 uppercase tracking-wider">
+                        To
+                    </label>
+                    <select
+                        className="w-full sm:w-auto pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all sm:min-w-[130px]"
+                        value={endMonth}
+                        onChange={(e) => handleEndChange(e.target.value)}
+                    >
+                        <option value="All">Latest</option>
+                        {endMonths.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-6 text-slate-400 pointer-events-none" size={14} />
+                </div>
             </div>
 
             {hasFilter && (

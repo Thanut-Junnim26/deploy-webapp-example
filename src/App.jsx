@@ -94,26 +94,27 @@ const App = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8">
-          <div className="flex items-center justify-between h-14">
+        <div className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8">
+          <div className="flex items-center justify-between h-12 sm:h-14 gap-2">
             {/* Logo + Title */}
-            <div className="flex items-center gap-2.5">
-              <img src="/truex-logo.png" alt="TrueX" className="w-8 h-8 rounded-lg object-cover" />
-              <h1 className="text-base font-bold text-slate-800 tracking-tight">True Shop Dashboard</h1>
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              <img src="/truex-logo.png" alt="TrueX" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover" />
+              <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-tight hidden xs:block">True Shop Dashboard</h1>
+              <h1 className="text-sm font-bold text-slate-800 tracking-tight xs:hidden">Dashboard</h1>
             </div>
 
             {/* View Tabs */}
             <nav className="flex items-center border border-slate-200 rounded-lg p-0.5">
               <button
                 onClick={() => setActiveView('shop')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 ${activeView === 'shop' ? 'bg-gradient-to-r from-pink-600 via-red-500 to-orange-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 ${activeView === 'shop' ? 'bg-gradient-to-r from-pink-600 via-red-500 to-orange-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 <Store size={14} />
                 Shop
               </button>
               <button
                 onClick={() => setActiveView('product')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 ${activeView === 'product' ? 'bg-gradient-to-r from-pink-600 via-red-500 to-orange-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 ${activeView === 'product' ? 'bg-gradient-to-r from-pink-600 via-red-500 to-orange-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 <Package size={14} />
                 Product
@@ -121,7 +122,7 @@ const App = () => {
             </nav>
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all"
@@ -132,11 +133,11 @@ const App = () => {
               <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleImportFile} />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-all"
+                className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-all"
               >
-                <Upload size={13} /> Import
+                <Upload size={13} /><span className="hidden sm:inline">Import</span>
               </button>
-              <div className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1.5">
+              <div className="hidden sm:flex bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full text-[10px] font-bold items-center gap-1.5">
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                 {transactions.length.toLocaleString()} RECORDS
               </div>
@@ -146,7 +147,7 @@ const App = () => {
       </header>
 
       {/* Content */}
-      <main className="max-w-[1440px] mx-auto px-4 md:px-8 py-5">
+      <main className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-3 sm:py-5">
         <div className="mb-5">
           <FilterBar
             startMonth={startMonth}

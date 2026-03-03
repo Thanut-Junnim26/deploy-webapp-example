@@ -306,3 +306,31 @@ body.dark {
 table tbody tr {
     transition: background-color 0.1s ease;
 }
+
+/* --- Mobile Responsive (iPhone SE 375px → iPhone 14 Pro Max 430px) --- */
+@media (max-width: 640px) {
+    .stat-card {
+        padding: 0.875rem 1rem;
+    }
+
+    .chart-card {
+        padding: 0.875rem;
+    }
+
+    .filter-bar {
+        padding: 0.625rem 0.75rem;
+    }
+
+    /* Faster taps on touch devices */
+    button,
+    select,
+    a,
+    [role="button"] {
+        touch-action: manipulation;
+    }
+
+    /* Prevent text size adjustment on iOS */
+    body {
+        -webkit-text-size-adjust: 100%;
+    }
+}

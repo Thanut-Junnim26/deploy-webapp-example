@@ -47,16 +47,16 @@ const HeatMap = ({ data, rowKey = 'name', months = [], title = 'Revenue Heat Map
                 <table className="w-full text-xs">
                     <thead>
                         <tr className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                            <th className="pb-2 pr-2 text-left sticky left-0 bg-white z-10 min-w-[120px]">Shop</th>
+                            <th className="pb-2 pr-2 text-left sticky left-0 bg-white z-10 min-w-[80px] sm:min-w-[120px]">Shop</th>
                             {months.map(m => (
-                                <th key={m} className="pb-2 px-1 text-center min-w-[52px]">{m.replace('-25', '').replace('-26', "'26")}</th>
+                                <th key={m} className="pb-2 px-1 text-center min-w-[42px] sm:min-w-[52px]">{m.replace('-25', '').replace('-26', "'26")}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {data.map((row, idx) => (
                             <tr key={idx}>
-                                <td className="py-1 pr-2 font-semibold text-slate-600 truncate max-w-[120px] sticky left-0 bg-white z-10">
+                                <td className="py-1 pr-2 font-semibold text-slate-600 truncate max-w-[80px] sm:max-w-[120px] sticky left-0 bg-white z-10 text-[10px] sm:text-xs">
                                     {row[rowKey]}
                                 </td>
                                 {months.map(m => (

@@ -370,11 +370,11 @@ const ProductView = ({ filteredData }) => {
     return (
         <div className="space-y-5 animate-view-in">
             {/* Contextual Filters */}
-            <section className="filter-bar flex flex-wrap items-center gap-3">
+            <section className="filter-bar flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
                 <div className="relative">
                     <label className="text-[10px] font-bold text-slate-400 absolute top-1.5 left-3 uppercase tracking-wider">Category</label>
                     <select
-                        className="pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all min-w-[150px]"
+                        className="w-full sm:w-auto pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all sm:min-w-[150px]"
                         value={selectedCategory}
                         onChange={e => handleCategoryChange(e.target.value)}
                     >
@@ -386,7 +386,7 @@ const ProductView = ({ filteredData }) => {
                 <div className="relative">
                     <label className="text-[10px] font-bold text-slate-400 absolute top-1.5 left-3 uppercase tracking-wider">Product</label>
                     <select
-                        className="pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all min-w-[180px]"
+                        className="w-full sm:w-auto pt-5 pb-1.5 px-3 pr-8 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 outline-none text-sm bg-white transition-all sm:min-w-[180px]"
                         value={selectedProduct}
                         onChange={e => handleProductChange(e.target.value)}
                     >
@@ -409,7 +409,7 @@ const ProductView = ({ filteredData }) => {
             </section>
 
             {/* KPI Cards */}
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <section className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 <StatCard
                     title="Total Revenue"
                     value={`฿${Math.round(stats.totalRevenue).toLocaleString()}`}
@@ -442,7 +442,7 @@ const ProductView = ({ filteredData }) => {
             {level >= 2 && topBranches.length > 0 && (
                 <section>
                     <ChartCard title={`Top 10 Branches — ${level === 2 ? selectedCategory : selectedProduct}`} icon={Store} iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500">
-                        <div className="h-[320px]">
+                        <div className="h-[240px] sm:h-[320px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={topBranches} layout="vertical" margin={{ left: 10 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -469,7 +469,7 @@ const ProductView = ({ filteredData }) => {
                         icon={TrendingUp}
                         iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500"
                     >
-                        <div className="h-[320px]">
+                        <div className="h-[240px] sm:h-[320px]">
                             {categoryTrendData.length === 0 ? (
                                 <div className="flex items-center justify-center h-full text-slate-400 text-sm">No trend data available</div>
                             ) : (
@@ -510,7 +510,7 @@ const ProductView = ({ filteredData }) => {
                         icon={TrendingUp}
                         iconColor="bg-gradient-to-br from-pink-600 via-red-500 to-orange-500"
                     >
-                        <div className="h-[280px]">
+                        <div className="h-[200px] sm:h-[280px]">
                             {simpleTrendData.length === 0 ? (
                                 <div className="flex items-center justify-center h-full text-slate-400 text-sm">No trend data available</div>
                             ) : (
