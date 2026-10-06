@@ -145,6 +145,28 @@ body.dark {
     border-color: #f472b6;
 }
 
+.dark input,
+.dark textarea {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.dark input:focus,
+.dark textarea:focus {
+    border-color: #f472b6;
+}
+
+.dark input:read-only {
+    background-color: #0f172a;
+    color: #94a3b8;
+}
+
+.dark .modal-panel {
+    background: #1e293b;
+    border-color: #334155;
+}
+
 /* --- Dark mode tooltips --- */
 .dark .recharts-tooltip-wrapper .bg-white {
     background-color: #1e293b !important;
