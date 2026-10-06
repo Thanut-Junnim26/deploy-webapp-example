@@ -6,11 +6,7 @@ import DashboardSkeleton from './components/DashboardSkeleton';
 import ProductView from './views/ProductView';
 import ShopView from './views/ShopView';
 import DataView from './views/DataView';
-
-const MONTH_ORDER = [
-  'Jan-25', 'Feb-25', 'Mar-25', 'Apr-25', 'May-25', 'Jun-25',
-  'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25', 'Dec-25', 'Jan-26', 'Feb-26'
-];
+import { monthKey, byMonth } from './utils/months';
 
 const App = () => {
   const [sheet, setSheet] = useState({ headers: [], rows: [], autoCols: [], source: 'csv' });
@@ -66,15 +62,14 @@ const App = () => {
 
   const months = useMemo(() => {
     const unique = [...new Set(transactions.map(t => t.month).filter(Boolean))];
-    return unique.sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+    return unique.sort(byMonth);
   }, [transactions]);
 
   const filteredData = useMemo(() => {
     if (startMonth === 'All' && endMonth === 'All') return transactions;
-    const startIdx = startMonth === 'All' ? 0 : MONTH_ORDER.indexOf(startMonth);
-    const endIdx = endMonth === 'All' ? MONTH_ORDER.length - 1 : MONTH_ORDER.indexOf(endMonth);
-    const rangeMonths = MONTH_ORDER.slice(Math.max(startIdx, 0), endIdx + 1);
-    return transactions.filter(t => rangeMonths.includes(t.month));
+    const from = startMonth === 'All' ? -Infinity : monthKey(startMonth);
+    const to = endMonth === 'All' ? Infinity : monthKey(endMonth);
+    return transactions.filter(t => { const k = monthKey(t.month); return k >= from && k <= to; });
   }, [transactions, startMonth, endMonth]);
 
   const allShopCount = useMemo(() => {

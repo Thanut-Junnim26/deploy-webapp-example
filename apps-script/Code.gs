@@ -15,7 +15,7 @@
  */
 
 const CONFIG = {
-  SHEET_GID: 395929549,        // gid ของแท็บข้อมูล (ดูจาก URL ของ Sheet: ...#gid=XXXX)
+  SHEET_GID: 1603101243,       // gid ของแท็บข้อมูล (ดูจาก URL ของ Sheet: ...#gid=XXXX)
   ID_HEADER: 'ID',             // คอลัมน์ ID จะถูกสร้างต่อท้ายให้อัตโนมัติถ้ายังไม่มี
   DATE_HEADER: 'Invoice Date',
   DATE_FORMAT: 'dd/mm/yyyy',

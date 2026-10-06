@@ -8,13 +8,9 @@ import StatCard from '../components/StatCard';
 import ChartCard from '../components/ChartCard';
 import DataBarTable from '../components/DataBarTable';
 import HeatMap from '../components/HeatMap';
+import { byMonth as sortByMonth } from '../utils/months';
 
 const COLORS = ['#dc2626', '#10b981', '#f59e0b', '#6366f1', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#84cc16', '#0ea5e9'];
-
-const MONTH_ORDER = [
-    'Jan-25', 'Feb-25', 'Mar-25', 'Apr-25', 'May-25', 'Jun-25',
-    'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25', 'Dec-25', 'Jan-26', 'Feb-26'
-];
 
 const SEGMENT_COLORS = {
     Champion: { bg: 'bg-emerald-50 text-emerald-700', color: '#10b981' },
@@ -62,7 +58,7 @@ function calcYoY(byMonth, months) {
 
 function getSortedMonths(data) {
     const months = [...new Set(data.map(t => t.month).filter(Boolean))];
-    return months.sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+    return months.sort(sortByMonth);
 }
 
 function getTopItemsWithMoM(data, key, months, limit = 10) {
@@ -363,7 +359,7 @@ const ShopView = ({ filteredData, allTransactions, startMonth, endMonth }) => {
 
         // Get all available months for the relevant shop type pool
         const allAvailableMonths = [...new Set(relevantTransactions.map(t => t.month))]
-            .sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+            .sort(sortByMonth);
 
         let activePool;
         let periodLabel;
