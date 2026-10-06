@@ -98,7 +98,7 @@ const App = () => {
           <div className="flex items-center justify-between h-12 sm:h-14 gap-2">
             {/* Logo + Title */}
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-              <img src="/truex-logo.png" alt="TrueX" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover" />
+              <img src={`${import.meta.env.BASE_URL}truex-logo.png`} alt="TrueX" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover" />
               <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-tight hidden xs:block">True Shop Dashboard</h1>
               <h1 className="text-sm font-bold text-slate-800 tracking-tight xs:hidden">Dashboard</h1>
             </div>
