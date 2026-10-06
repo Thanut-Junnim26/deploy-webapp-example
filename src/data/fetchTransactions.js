@@ -1,23 +1,26 @@
+import { hasApi, listRows } from './sheetApi';
+
 const SHEET_CSV_URL =
     'https://docs.google.com/spreadsheets/d/1v2_cSHm_Jn19BZARhl6XzrShZ99ARAT6emAw8rp1AUk/gviz/tq?tqx=out:csv&gid=395929549';
 
-// Column indices (0-indexed)
-const COL = {
-    invoiceDate: 6,    // Invoice Date (DD/MM/YYYY)
-    productName: 11,   // Product Name
-    qty: 12,           // Qty
-    amount: 13,        // Amount
-    month: 19,         // Month2
-    dayOfWeek: 20,     // Day_of_Week
-    isWeekend: 21,     // Is_Weekend
-    shopType: 22,      // Shop_Type
-    shopName: 23,      // Shop_Name
-    productSub: 24,    // Product_Sub
-    shopSegment: 25,   // Shop_Segment
-    productSegment: 26 // Product_Segment
+// Dashboard fields → sheet header names. Columns are looked up by header,
+// so adding the ID column (or reordering columns) in the sheet is safe.
+const FIELDS = {
+    invoiceDate: 'Invoice Date',
+    productName: 'Product Name',
+    qty: 'Qty',
+    amount: 'Amount',
+    month: 'Month2',
+    dayOfWeek: 'Day_of_Week',
+    isWeekend: 'Is_Weekend',
+    shopType: 'Shop_Type',
+    shopName: 'Shop_Name',
+    productSub: 'Product_Sub',
+    shopSegment: 'Shop_Segment',
+    productSegment: 'Product_Segment'
 };
 
-function parseDDMMYYYY(str) {
+export function parseDDMMYYYY(str) {
     if (!str) return null;
     const cleaned = str.replace(/"/g, '').trim();
     const parts = cleaned.split('/');
@@ -61,47 +64,66 @@ function parseCSVLine(line) {
     return result;
 }
 
+const toNumber = (v) => parseFloat(String(v ?? '').replace(/,/g, ''));
+
 /**
- * Fetch transaction data from the published Google Sheet and return
- * an array of objects with only the 11 focused columns.
+ * Load the raw sheet. Uses the Apps Script API when configured (needed for editing),
+ * otherwise falls back to the public CSV export (read-only).
+ * @returns {Promise<{headers: string[], rows: string[][], autoCols: string[], source: 'api'|'csv'}>}
  */
-export async function fetchTransactions() {
+export async function fetchSheet() {
+    if (hasApi) {
+        const data = await listRows();
+        return { headers: data.headers, rows: data.rows, autoCols: data.autoCols || [], source: 'api' };
+    }
+
     const response = await fetch(SHEET_CSV_URL);
     if (!response.ok) throw new Error(`Failed to fetch data: ${response.status}`);
+    const lines = (await response.text()).split('\n').filter((l) => l.trim().length > 0);
+    const [headerLine, ...dataLines] = lines;
+    return {
+        headers: parseCSVLine(headerLine || ''),
+        rows: dataLines.map(parseCSVLine),
+        autoCols: [],
+        source: 'csv'
+    };
+}
 
-    const csvText = await response.text();
-    const lines = csvText.split('\n').filter((l) => l.trim().length > 0);
+/** Convert raw sheet rows into the transaction objects the dashboard views use. */
+export function toTransactions(headers, rows) {
+    const idx = Object.fromEntries(Object.entries(FIELDS).map(([k, h]) => [k, headers.indexOf(h)]));
+    const idIdx = headers.indexOf('ID');
+    const at = (cols, key) => (idx[key] >= 0 ? cols[idx[key]] ?? '' : '');
 
-    // Skip header row (index 0)
-    const dataLines = lines.slice(1);
-
-    return dataLines
-        .map((line) => {
-            const cols = parseCSVLine(line);
-            if (cols.length < 27) return null;
-
-            const qty = parseInt(cols[COL.qty], 10);
-            const amount = parseFloat(cols[COL.amount]);
-
+    return rows
+        .map((cols) => {
+            const qty = parseInt(toNumber(at(cols, 'qty')), 10);
+            const amount = toNumber(at(cols, 'amount'));
             if (isNaN(qty) || isNaN(amount)) return null;
 
-            const invoiceDate = parseDDMMYYYY(cols[COL.invoiceDate]);
+            const invoiceDate = parseDDMMYYYY(at(cols, 'invoiceDate'));
 
             return {
-                productName: cols[COL.productName] || '',
+                id: idIdx >= 0 ? cols[idIdx] : undefined,
+                productName: at(cols, 'productName'),
                 qty,
                 amount,
-                month: cols[COL.month] || '',
+                month: at(cols, 'month'),
                 invoiceDate,
                 invoiceDay: invoiceDate ? invoiceDate.getDate() : null,
-                dayOfWeek: cols[COL.dayOfWeek] || '',
-                isWeekend: cols[COL.isWeekend] === 'TRUE',
-                shopType: cols[COL.shopType] || '',
-                shopName: cols[COL.shopName] || '',
-                productSub: cols[COL.productSub] || '',
-                shopSegment: cols[COL.shopSegment] || '',
-                productSegment: cols[COL.productSegment] || ''
+                dayOfWeek: at(cols, 'dayOfWeek'),
+                isWeekend: at(cols, 'isWeekend') === 'TRUE',
+                shopType: at(cols, 'shopType'),
+                shopName: at(cols, 'shopName'),
+                productSub: at(cols, 'productSub'),
+                shopSegment: at(cols, 'shopSegment'),
+                productSegment: at(cols, 'productSegment')
             };
         })
         .filter(Boolean);
+}
+
+export async function fetchTransactions() {
+    const { headers, rows } = await fetchSheet();
+    return toTransactions(headers, rows);
 }

@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Upload, Package, Store, AlertCircle, Sun, Moon } from 'lucide-react';
-import { fetchTransactions } from './data/fetchTransactions';
+import { Upload, Package, Store, AlertCircle, Sun, Moon, Database } from 'lucide-react';
+import { fetchSheet, toTransactions } from './data/fetchTransactions';
 import FilterBar from './components/FilterBar';
 import DashboardSkeleton from './components/DashboardSkeleton';
 import ProductView from './views/ProductView';
 import ShopView from './views/ShopView';
+import DataView from './views/DataView';
 
 const MONTH_ORDER = [
   'Jan-25', 'Feb-25', 'Mar-25', 'Apr-25', 'May-25', 'Jun-25',
@@ -12,8 +13,10 @@ const MONTH_ORDER = [
 ];
 
 const App = () => {
-  const [transactions, setTransactions] = useState([]);
+  const [sheet, setSheet] = useState({ headers: [], rows: [], autoCols: [], source: 'csv' });
+  const [imported, setImported] = useState(null); // transactions from an imported JSON file
   const [loading, setLoading] = useState(true);
+  const [reloading, setReloading] = useState(false);
   const [error, setError] = useState(null);
   const [activeView, setActiveView] = useState('shop');
   const [startMonth, setStartMonth] = useState('All');
@@ -26,11 +29,25 @@ const App = () => {
     localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
+  const loadSheet = () => fetchSheet().then((data) => { setSheet(data); setImported(null); setError(null); });
+
   useEffect(() => {
-    fetchTransactions()
-      .then((data) => { setTransactions(data); setLoading(false); })
-      .catch((err) => { console.error('Failed to fetch:', err); setError(err.message); setLoading(false); });
+    loadSheet()
+      .catch((err) => { console.error('Failed to fetch:', err); setError(err.message); })
+      .finally(() => setLoading(false));
   }, []);
+
+  const reload = () => {
+    setReloading(true);
+    loadSheet().catch((err) => setError(err.message)).finally(() => setReloading(false));
+  };
+
+  const setRows = (updater) => setSheet((s) => ({ ...s, rows: typeof updater === 'function' ? updater(s.rows) : updater }));
+
+  const transactions = useMemo(
+    () => imported ?? toTransactions(sheet.headers, sheet.rows),
+    [imported, sheet.headers, sheet.rows]
+  );
 
   const handleImportFile = (e) => {
     const file = e.target.files[0];
@@ -39,7 +56,7 @@ const App = () => {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        if (Array.isArray(data)) { setTransactions(data); setError(null); }
+        if (Array.isArray(data)) { setImported(data); setError(null); }
         else alert('Invalid format: expected JSON array.');
       } catch { alert('Failed to parse file.'); }
     };
@@ -77,7 +94,7 @@ const App = () => {
           <h2 className="text-xl font-bold text-slate-800 mb-2">Failed to Load Data</h2>
           <p className="text-slate-500 mb-6">{error}</p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => { setLoading(true); setError(null); fetchTransactions().then(setTransactions).catch(e => setError(e.message)).finally(() => setLoading(false)); }} className="px-5 py-2.5 bg-gradient-to-r from-pink-600 via-red-500 to-orange-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all">
+            <button onClick={() => { setLoading(true); setError(null); loadSheet().catch(e => setError(e.message)).finally(() => setLoading(false)); }} className="px-5 py-2.5 bg-gradient-to-r from-pink-600 via-red-500 to-orange-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all">
               Retry
             </button>
             <button onClick={() => fileInputRef.current?.click()} className="px-5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-all">
@@ -119,6 +136,13 @@ const App = () => {
                 <Package size={14} />
                 Product
               </button>
+              <button
+                onClick={() => setActiveView('data')}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 ${activeView === 'data' ? 'bg-gradient-to-r from-pink-600 via-red-500 to-orange-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <Database size={14} />
+                Data
+              </button>
             </nav>
 
             {/* Actions */}
@@ -148,6 +172,9 @@ const App = () => {
 
       {/* Content */}
       <main className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-3 sm:py-5">
+        {activeView === 'data' ? (
+          <DataView sheet={sheet} setRows={setRows} onReload={reload} reloading={reloading} />
+        ) : (<>
         <div className="mb-5">
           <FilterBar
             startMonth={startMonth}
@@ -163,6 +190,7 @@ const App = () => {
         ) : (
           <ProductView filteredData={filteredData} />
         )}
+        </>)}
 
         {/* Footer */}
         <footer className="mt-6 bg-white text-slate-500 p-4 rounded-xl border border-slate-200" style={{ borderLeft: '4px solid #e8222b' }}>
