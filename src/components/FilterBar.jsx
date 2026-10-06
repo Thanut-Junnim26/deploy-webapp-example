@@ -1,18 +1,14 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-
-const MONTH_ORDER = [
-    'Jan-25', 'Feb-25', 'Mar-25', 'Apr-25', 'May-25', 'Jun-25',
-    'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25', 'Dec-25', 'Jan-26', 'Feb-26'
-];
+import { monthKey } from '../utils/months';
 
 const FilterBar = ({ startMonth, setStartMonth, endMonth, setEndMonth, months }) => {
     const handleStartChange = (val) => {
         setStartMonth(val);
         // If end is before start, reset end
         if (val !== 'All' && endMonth !== 'All') {
-            const si = MONTH_ORDER.indexOf(val);
-            const ei = MONTH_ORDER.indexOf(endMonth);
+            const si = monthKey(val);
+            const ei = monthKey(endMonth);
             if (ei < si) setEndMonth('All');
         }
     };
@@ -21,8 +17,8 @@ const FilterBar = ({ startMonth, setStartMonth, endMonth, setEndMonth, months })
         setEndMonth(val);
         // If start is after end, reset start
         if (val !== 'All' && startMonth !== 'All') {
-            const si = MONTH_ORDER.indexOf(startMonth);
-            const ei = MONTH_ORDER.indexOf(val);
+            const si = monthKey(startMonth);
+            const ei = monthKey(val);
             if (si > ei) setStartMonth('All');
         }
     };
@@ -34,12 +30,12 @@ const FilterBar = ({ startMonth, setStartMonth, endMonth, setEndMonth, months })
     // For "End" dropdown: only show months >= start
     const endMonths = startMonth === 'All'
         ? months
-        : months.filter(m => MONTH_ORDER.indexOf(m) >= MONTH_ORDER.indexOf(startMonth));
+        : months.filter(m => monthKey(m) >= monthKey(startMonth));
 
     // For "Start" dropdown: only show months <= end
     const startMonths = endMonth === 'All'
         ? months
-        : months.filter(m => MONTH_ORDER.indexOf(m) <= MONTH_ORDER.indexOf(endMonth));
+        : months.filter(m => monthKey(m) <= monthKey(endMonth));
 
     // Build label
     const rangeLabel = hasFilter

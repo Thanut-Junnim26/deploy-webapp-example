@@ -40,7 +40,7 @@ function makeSheet(grid, formulasGrid) {
   const recompute = () => cells.forEach((row, ri) => row.forEach(x => { if (x.f) x.v = evalF(x.f, ri + 1); }));
   const lastRow = () => { for (let i = cells.length; i > 0; i--) if (cells[i - 1].some(x => x.v !== '' && x.v != null || x.f)) return i; return 0; };
   return {
-    getSheetId: () => 395929549,
+    getSheetId: () => 1603101243,
     getRange: range,
     getLastRow: lastRow,
     getLastColumn: () => width(),

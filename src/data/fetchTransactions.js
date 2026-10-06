@@ -1,7 +1,7 @@
 import { hasApi, listRows } from './sheetApi';
 
 const SHEET_CSV_URL =
-    'https://docs.google.com/spreadsheets/d/1v2_cSHm_Jn19BZARhl6XzrShZ99ARAT6emAw8rp1AUk/gviz/tq?tqx=out:csv&gid=395929549';
+    'https://docs.google.com/spreadsheets/d/16VVKz_Y2sUpwkfzWqySGSRHgX74B3SR_uddzKns81I4/gviz/tq?tqx=out:csv&gid=1603101243';
 
 // Dashboard fields → sheet header names. Columns are looked up by header,
 // so adding the ID column (or reordering columns) in the sheet is safe.
